@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MP2000 Pallet Verifier - PUDU Robotics 3D Simulation</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+</head>
+<body>
+
+  <!-- LOADING SPLASH OVERLAY (PRIORITIZED GLB LOADING) -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-icon">🤖</div>
+      <h3 class="loading-title">MP2000 Pallet Verifier</h3>
+      <p class="loading-subtitle">Prioritizing & loading PUDU MP2000 3D CAD Model<br><strong style="color: var(--accent-pudu);">MP2000-optimized.glb</strong></p>
+      <div class="loading-bar-bg">
+        <div id="loading-bar" class="loading-bar-fill"></div>
+      </div>
+      <span id="loading-percent" class="loading-percent-text">Initializing Draco Decoder & 3D Assets...</span>
+    </div>
+  </div>
+
+  <!-- TOP BRAND HEADER WITH ADVANCED TOOL PLUGINS -->
+  <header class="app-header">
+    <div class="brand-container">
+      <span class="brand-logo">🤖</span>
+      <div>
+        <span class="brand-title">MP2000 Pallet Verifier</span>
+        <span class="brand-subtitle">PUDU Robotics AI-Native Autonomous Forklift Verification Engine</span>
+      </div>
+    </div>
+
+    <!-- COOL PLUGINS & SHOWROOM TOOLS -->
+    <div class="header-tools">
+      <button id="btn-cad-dim" class="btn-header-tool active" title="Toggle 3D CAD Caliper Dimensions">
+        📏 3D CAD Overlays
+      </button>
+      <button id="btn-lidar" class="btn-header-tool active" title="Toggle 3D LiDAR Perception Scanner">
+        📡 3D LiDAR
+      </button>
+      <button id="btn-sound" class="btn-header-tool active" title="Toggle Industrial Motor & Hydraulic Audio">
+        🔊 Audio
+      </button>
+      <button id="btn-snapshot" class="btn-header-tool" title="Export High-Res Verification Report Snapshot">
+        📸 Snapshot
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="app-layout">
+
+    <!-- LEFT PANEL: PALLET CUSTOMIZER & PRESETS -->
+    <aside class="panel panel-left">
+      <div class="panel-header">
+        <h2>📦 Regional Presets & Customizer</h2>
+      </div>
+
+      <div class="panel-body">
+        <!-- Preset Selector -->
+        <div class="control-group">
+          <label class="control-label" for="preset-select">Standard Preset</label>
+          <select id="preset-select">
+            <!-- Dynamically populated from presets.js -->
+          </select>
+        </div>
+
+        <div id="preset-desc" class="preset-info-card">
+          <!-- Preset summary text inserted here -->
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 4px 0;">
+
+        <!-- Pallet Geometric Dimensions -->
+        <div class="control-group">
+          <label class="control-label">Length (L) <span class="unit">mm</span></label>
+          <div class="slider-row">
+            <input type="range" id="input-length" min="600" max="1400" step="10" value="1200">
+            <input type="number" class="slider-num" id="num-length" readonly value="1200">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Width (W) <span class="unit">mm</span></label>
+          <div class="slider-row">
+            <input type="range" id="input-width" min="600" max="1400" step="10" value="1000">
+            <input type="number" class="slider-num" id="num-width" readonly value="1000">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Overall Height (H) <span class="unit">mm</span></label>
+          <div class="slider-row">
+            <input type="range" id="input-height" min="100" max="200" step="1" value="162">
+            <input type="number" class="slider-num" id="num-height" readonly value="162">
+          </div>
+        </div>
+
+        <!-- Critical Entry Openings (W1, W2, Ch) -->
+        <div class="control-group">
+          <label class="control-label">Outer Opening (W₁) <span class="unit">mm</span></label>
+          <div class="slider-row">
+            <input type="range" id="input-w1" min="500" max="1000" step="5" value="760">
+            <input type="number" class="slider-num" id="num-w1" readonly value="760">
+          </div>
+          <span style="font-size: 10px; color: var(--text-muted);">Span between inner faces of outer blocks</span>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Center Block Width (W₂) <span class="unit">mm</span></label>
+          <div class="slider-row">
+            <input type="range" id="input-w2" min="30" max="250" step="5" value="145">
+            <input type="number" class="slider-num" id="num-w2" readonly value="145">
+          </div>
+          <span style="font-size: 10px; color: var(--text-muted);">Thickness of center block or stringer</span>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Pocket Clearance (Cₕ) <span class="unit">mm</span></label>
+          <div class="slider-row">
+            <input type="range" id="input-ch" min="20" max="140" step="1" value="100">
+            <input type="number" class="slider-num" id="num-ch" readonly value="100">
+          </div>
+          <span style="font-size: 10px; color: var(--text-muted);">Vertical under-deck opening height</span>
+        </div>
+
+        <!-- Pallet Style & Material -->
+        <div class="control-group">
+          <label class="control-label" for="select-type">Bottom Deck Style</label>
+          <select id="select-type">
+            <option value="perimeter">Full Perimeter (Tian 田-Type / Closed)</option>
+            <option value="three_runner">Three-Runner (Chuan 川-Type / Open)</option>
+            <option value="stringer">Continuous Stringer (Wood)</option>
+            <option value="reversible">Reversible Double-Deck (Solid Bottom)</option>
+            <option value="notched">Notched 4-Way Stringer (US GMA)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="select-material">Material</label>
+          <select id="select-material">
+            <option value="wood">Timber / Wood</option>
+            <option value="plastic">HDPE / Industrial Plastic</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="input-color">Pallet Color</label>
+          <input type="color" id="input-color" value="#1e3a8a">
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER VIEWPORT: 3D THREE.JS SIMULATION -->
+    <main class="viewport-container">
+      <div id="canvas-container"></div>
+
+      <!-- Top HUD Overlay -->
+      <div class="viewport-hud">
+        <div class="hud-top-left">
+          <!-- Robot Model Toggle -->
+          <div class="model-switcher">
+            <button id="btn-model-m" class="btn-model active">
+              Standard (620mm) - WPID01-M
+            </button>
+            <button id="btn-model-n" class="btn-model">
+              Narrow (550mm) - WPID01-N
+            </button>
+          </div>
+        </div>
+
+        <!-- Camera Angle Modes -->
+        <div class="cam-switcher">
+          <button class="btn-cam active" data-cam="ad">🎬 Hero Ad</button>
+          <button class="btn-cam" data-cam="top">📐 Top CAD</button>
+          <button class="btn-cam" data-cam="front">👁️ Front Pocket</button>
+          <button class="btn-cam" data-cam="side">🔍 Side CAD</button>
+          <button class="btn-cam" data-cam="free">🕹️ Free 3D</button>
+        </div>
+      </div>
+
+      <!-- LIVE TELEMETRY BAR (REAL-TIME ROBOT STATS) -->
+      <div class="live-telemetry-bar">
+        <div class="telemetry-chip">
+          <span>SPEED:</span> <strong id="telemetry-speed">0.00 m/s</strong>
+        </div>
+        <div class="telemetry-chip">
+          <span>LIFT:</span> <strong id="telemetry-lift">0 mm</strong>
+        </div>
+        <div class="telemetry-chip">
+          <span>CAPACITY:</span> <strong>2,000 kg</strong>
+        </div>
+        <div class="telemetry-chip">
+          <span>MARGIN:</span> <strong id="telemetry-margin">+70 mm/side</strong>
+        </div>
+      </div>
+
+      <!-- Collision Alert Callout -->
+      <div id="collision-alert-banner" class="collision-alert">
+        ⚠️ <strong>COLLISION DETECTED:</strong> Motion halted at impact boundary.
+      </div>
+
+      <!-- Bottom 3-Second Simulation Controller HUD -->
+      <div class="sim-controls-bar">
+        <button id="btn-play" class="btn-sim-action">
+          ▶ Play Simulation
+        </button>
+        <button id="btn-replay" class="btn-sim-action btn-sim-replay" title="Restart 3-Second Insertion">
+          ↺ Replay (3s)
+        </button>
+
+        <div class="timeline-container">
+          <input type="range" id="timeline-scrubber" class="timeline-scrubber" min="0" max="3" step="0.01" value="0">
+          <span id="sim-time-text" class="time-readout">0.00s / 3.00s</span>
+        </div>
+
+        <div class="speed-buttons">
+          <button class="btn-speed" data-speed="0.5">0.5x</button>
+          <button class="btn-speed active" data-speed="1.0">1.0x</button>
+          <button class="btn-speed" data-speed="2.0">2.0x</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL: VERIFICATION REPORT & MATHEMATICAL DIAGNOSTICS -->
+    <aside class="panel panel-right">
+      <div class="panel-header">
+        <h2>⚡ Verification & Diagnostics</h2>
+      </div>
+
+      <div class="panel-body">
+        <!-- Active Model Header -->
+        <div>
+          <h3 id="hud-model-title" style="font-size: 15px; color: var(--accent-pudu);">PUDU MP2000 Standard</h3>
+          <p id="hud-model-specs" style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+            Outer Fork: 620mm | Inner Gap: 300mm | Lowered: 80mm
+          </p>
+        </div>
+
+        <!-- Verdict Banner -->
+        <div id="hud-verdict" class="verdict-banner badge-preferred">
+          <div class="verdict-title">PREFERRED (RECOMMENDED)</div>
+          <div class="verdict-desc">Evaluating...</div>
+        </div>
+
+        <!-- Formula Criteria Checks -->
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-top: 4px;">
+          PUDU Formula Verification
+        </div>
+
+        <!-- Criteria 1: Outer Opening -->
+        <div id="metric-outer" class="metric-row pass"></div>
+
+        <!-- Criteria 2: Inner Center Block -->
+        <div id="metric-inner" class="metric-row pass"></div>
+
+        <!-- Criteria 3: Vertical Height Clearance -->
+        <div id="metric-height" class="metric-row pass"></div>
+
+        <!-- Criteria 4: Bottom Deckboard Kinematics -->
+        <div id="metric-bottom" class="metric-row pass"></div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 4px 0;">
+
+        <!-- Dual Model Comparison -->
+        <div>
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
+            Dual Model Compatibility
+          </div>
+          <div id="hud-comparison" class="comparison-container"></div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Synchronize slider range and number display -->
+  <script>
+    ['length', 'width', 'height', 'w1', 'w2', 'ch'].forEach(key => {
+      const range = document.getElementById('input-' + key);
+      const num = document.getElementById('num-' + key);
+      if (range && num) {
+        range.addEventListener('input', () => { num.value = range.value; });
+      }
+    });
+  </script>
+
+  <!-- Local Offline-Ready Three.js Libraries & GLTF/Draco Loaders -->
+  <script src="js/libs/three.min.js"></script>
+  <script src="js/libs/OrbitControls.js"></script>
+  <script src="js/libs/DRACOLoader.js"></script>
+  <script src="js/libs/GLTFLoader.js"></script>
+
+  <!-- Advanced Interactive Tool Plugins -->
+  <script src="js/soundEffects.js"></script>
+  <script src="js/cadDimensions.js"></script>
+  <script src="js/lidarScanner.js"></script>
+  <script src="js/exporter.js"></script>
+
+  <!-- Application Modules (Sequential Global Scripts) -->
+  <script src="js/presets.js"></script>
+  <script src="js/verifier.js"></script>
+  <script src="js/palletModel.js"></script>
+  <script src="js/robotModel.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
