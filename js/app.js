@@ -12,7 +12,9 @@
   const evaluateModel = window.evaluateModel;
   const evaluatePalletComparative = window.evaluatePalletComparative;
   const PalletModel = window.PalletModel;
+  const PathwayModel = window.PathwayModel;
   const RobotModel = window.RobotModel;
+  const PathwayVerifier = window.PathwayVerifier;
   const SimulationController = window.SimulationController;
   const SoundEngine = window.SoundEngine;
   const CadDimensions = window.CadDimensions;
@@ -25,6 +27,16 @@
       this.currentModelCode = 'WPID01-M'; // default to standard 620mm
       this.currentPallet = { ...PALLET_PRESETS[0] }; // default to Malaysia CHEP
       this.autoCompareMode = false;
+
+      // Active Mode: 'pallet' (3s) or 'pathway' (5s)
+      this.activeMode = 'pallet';
+      this.pathwayParams = {
+        length: 8.0,
+        width: 2200,
+        maneuver: 'straight',
+        isLoaded: true
+      };
+      this.pathwayEvalResult = null;
 
       // Audio state flags
       this.hasPlayedLiftSound = false;
@@ -134,12 +146,15 @@
       this.palletModel = new PalletModel(this.currentPallet);
       this.scene.add(this.palletModel.group);
 
+      this.pathwayModel = new PathwayModel(this.scene);
+
       this.robot = new RobotModel(this.currentModelCode);
       this.scene.add(this.robot.group);
 
       this.simulation = new SimulationController(
         this.robot,
         this.palletModel,
+        this.pathwayModel,
         this.camera,
         this.controls,
         (simState) => this.onSimulationUpdate(simState)
@@ -193,6 +208,7 @@
     initUI() {
       this.populatePresets();
       this.syncFormWithCurrentPallet();
+      this.readPathwayFromForm();
     }
 
     populatePresets() {
@@ -250,7 +266,7 @@
       return {
         id: 'custom',
         country: 'Custom',
-        flag: '✏️',
+        flag: '[CUSTOM]',
         name: 'Custom User Pallet',
         standard: 'User-Defined Parameters',
         description: 'Custom dimensions configured via sliders.',
@@ -273,13 +289,49 @@
     }
 
     bindEvents() {
+      // Mode Switcher Tabs
+      const tabPallet = document.getElementById('tab-mode-pallet');
+      const tabPathway = document.getElementById('tab-mode-pathway');
+      if (tabPallet) tabPallet.addEventListener('click', () => this.switchMode('pallet'));
+      if (tabPathway) tabPathway.addEventListener('click', () => this.switchMode('pathway'));
+
+      // Pathway Inputs
+      ['input-pathway-length', 'input-pathway-width'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', () => {
+            this.readPathwayFromForm();
+            this.runPathwayVerification();
+          });
+        }
+      });
+
+      const maneuverSelect = document.getElementById('pathway-maneuver-select');
+      if (maneuverSelect) {
+        maneuverSelect.addEventListener('change', () => {
+          this.readPathwayFromForm();
+          this.runPathwayVerification();
+        });
+      }
+
+      document.querySelectorAll('input[name="payload-condition"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          this.readPathwayFromForm();
+          this.runPathwayVerification();
+        });
+      });
+
       document.getElementById('preset-select').addEventListener('change', (e) => {
         const found = PALLET_PRESETS.find(p => p.id === e.target.value);
         if (found) {
           this.currentPallet = { ...found };
           this.syncFormWithCurrentPallet();
           this.updatePalletModel();
-          this.runVerification();
+          if (this.activeMode === 'pallet') {
+            this.runVerification();
+          } else {
+            this.runPathwayVerification();
+          }
         }
       });
 
@@ -288,7 +340,11 @@
         document.getElementById(id).addEventListener('input', () => {
           this.currentPallet = this.readPalletFromForm();
           this.updatePalletModel();
-          this.runVerification();
+          if (this.activeMode === 'pallet') {
+            this.runVerification();
+          } else {
+            this.runPathwayVerification();
+          }
         });
       });
 
@@ -336,7 +392,7 @@
         btnSound.addEventListener('click', () => {
           const isMuted = this.sound.toggleMute();
           btnSound.classList.toggle('active', !isMuted);
-          btnSound.textContent = isMuted ? '🔇 Muted' : '🔊 Audio';
+          btnSound.textContent = isMuted ? 'Muted' : 'Audio';
         });
       }
 
@@ -397,7 +453,11 @@
       document.getElementById('btn-model-m').classList.toggle('active', code === 'WPID01-M');
       document.getElementById('btn-model-n').classList.toggle('active', code === 'WPID01-N');
 
-      this.runVerification();
+      if (this.activeMode === 'pallet') {
+        this.runVerification();
+      } else {
+        this.runPathwayVerification();
+      }
     }
 
     updatePalletModel() {
@@ -451,7 +511,7 @@
       outerEl.className = `metric-row ${metrics.outer.pass ? 'pass' : 'fail'}`;
       outerEl.innerHTML = `
         <div class="metric-label">
-          <span class="status-icon">${metrics.outer.pass ? '✅' : '❌'}</span>
+          <span class="status-tag ${metrics.outer.pass ? 'pass' : 'fail'}">${metrics.outer.pass ? 'PASS' : 'FAIL'}</span>
           <strong>Outer Entry Check (W₁ ≥ B₁ + 40mm)</strong>
         </div>
         <div class="metric-values">
@@ -467,7 +527,7 @@
       innerEl.className = `metric-row ${metrics.inner.pass ? 'pass' : 'fail'}`;
       innerEl.innerHTML = `
         <div class="metric-label">
-          <span class="status-icon">${metrics.inner.pass ? '✅' : '❌'}</span>
+          <span class="status-tag ${metrics.inner.pass ? 'pass' : 'fail'}">${metrics.inner.pass ? 'PASS' : 'FAIL'}</span>
           <strong>Inner Block Check (W₂ ≤ B₂ - 40mm)</strong>
         </div>
         <div class="metric-values">
@@ -482,7 +542,7 @@
       heightEl.className = `metric-row ${metrics.height.pass ? 'pass' : 'fail'}`;
       heightEl.innerHTML = `
         <div class="metric-label">
-          <span class="status-icon">${metrics.height.pass ? '✅' : '❌'}</span>
+          <span class="status-tag ${metrics.height.pass ? 'pass' : 'fail'}">${metrics.height.pass ? 'PASS' : 'FAIL'}</span>
           <strong>Height Clearance (Cₕ ≥ 85mm)</strong>
         </div>
         <div class="metric-values">
@@ -497,7 +557,7 @@
       bottomEl.className = `metric-row ${metrics.bottomDeck.pass ? 'pass' : 'fail'}`;
       bottomEl.innerHTML = `
         <div class="metric-label">
-          <span class="status-icon">${metrics.bottomDeck.pass ? '✅' : '❌'}</span>
+          <span class="status-tag ${metrics.bottomDeck.pass ? 'pass' : 'fail'}">${metrics.bottomDeck.pass ? 'PASS' : 'FAIL'}</span>
           <strong>Bottom Deck Kinematics (${metrics.bottomDeck.type.toUpperCase()})</strong>
         </div>
         <div class="metric-desc">${metrics.bottomDeck.notes}</div>
@@ -533,47 +593,283 @@
       `;
     }
 
-    onSimulationUpdate(simState) {
-      document.getElementById('timeline-scrubber').value = simState.currentTime.toFixed(2);
-      document.getElementById('sim-time-text').textContent = `${simState.currentTime.toFixed(2)}s / 3.00s`;
+    switchMode(mode) {
+      if (this.activeMode === mode) return;
+      this.activeMode = mode;
 
-      const playBtn = document.getElementById('btn-play');
-      playBtn.textContent = simState.isPlaying ? '⏸ Pause' : '▶ Play Simulation';
+      const tabPallet = document.getElementById('tab-mode-pallet');
+      const tabPathway = document.getElementById('tab-mode-pathway');
+      const secPalletCfg = document.getElementById('section-pallet-config');
+      const secPathwayCfg = document.getElementById('section-pathway-config');
+      const secPalletDiag = document.getElementById('section-pallet-diagnostics');
+      const secPathwayDiag = document.getElementById('section-pathway-diagnostics');
+      const scrubber = document.getElementById('timeline-scrubber');
+      const simTimeText = document.getElementById('sim-time-text');
+      const btnReplay = document.getElementById('btn-replay');
 
-      // 1. Audio and Telemetry during movement
-      if (simState.isPlaying && !simState.isCollisionHalted) {
-        const isInserting = simState.currentTime < 2.2;
-        const normalizedSpeed = isInserting ? Math.sin((simState.currentTime / 2.2) * Math.PI) : 0;
-        this.sound.setMotorSpeed(normalizedSpeed);
+      if (mode === 'pallet') {
+        if (tabPallet) tabPallet.classList.add('active');
+        if (tabPathway) tabPathway.classList.remove('active');
+        if (secPalletCfg) secPalletCfg.style.display = 'block';
+        if (secPathwayCfg) secPathwayCfg.style.display = 'none';
+        if (secPalletDiag) secPalletDiag.style.display = 'block';
+        if (secPathwayDiag) secPathwayDiag.style.display = 'none';
 
-        const currentSpeedMps = isInserting ? (0.45 * Math.sin((simState.currentTime / 2.2) * Math.PI)).toFixed(2) : '0.00';
-        document.getElementById('telemetry-speed').textContent = `${currentSpeedMps} m/s`;
-
-        // Hydraulic lift hiss sound at lift phase
-        if (simState.currentTime >= 2.2 && !this.hasPlayedLiftSound) {
-          this.hasPlayedLiftSound = true;
-          this.sound.playHydraulicLift();
+        if (scrubber) scrubber.max = '3';
+        if (simTimeText) simTimeText.textContent = '0.00s / 3.00s';
+        if (btnReplay) {
+          btnReplay.textContent = 'Replay (3s)';
+          btnReplay.title = 'Restart 3-Second Docking Simulation';
         }
 
-        // Lift telemetry
-        const liftMeters = this.palletModel.group.position.y || 0;
-        document.getElementById('telemetry-lift').textContent = `${(liftMeters * 1000).toFixed(0)} mm`;
+        if (this.palletModel) this.palletModel.group.visible = true;
+        if (this.pathwayModel) this.pathwayModel.setVisible(false);
+        if (this.cadDimensions) this.cadDimensions.setVisible(true);
+        if (this.turningRadius) this.turningRadius.setVisible(true);
 
-        // Success chime at completion
-        if (simState.currentTime >= 2.95 && !this.hasPlayedEndSound) {
-          this.hasPlayedEndSound = true;
-          this.sound.playSuccessChime();
-        }
+        this.simulation.setMode('pallet');
+        this.runVerification();
       } else {
-        this.sound.stopMotor();
-        document.getElementById('telemetry-speed').textContent = '0.00 m/s';
+        if (tabPallet) tabPallet.classList.remove('active');
+        if (tabPathway) tabPathway.classList.add('active');
+        if (secPalletCfg) secPalletCfg.style.display = 'none';
+        if (secPathwayCfg) secPathwayCfg.style.display = 'block';
+        if (secPalletDiag) secPalletDiag.style.display = 'none';
+        if (secPathwayDiag) secPathwayDiag.style.display = 'block';
+
+        if (scrubber) scrubber.max = '5';
+        if (simTimeText) simTimeText.textContent = '0.00s / 5.00s';
+        if (btnReplay) {
+          btnReplay.textContent = 'Replay (5s)';
+          btnReplay.title = 'Restart 5-Second Pathway Transit';
+        }
+
+        if (this.pathwayModel) this.pathwayModel.setVisible(true);
+        if (this.cadDimensions) this.cadDimensions.setVisible(false);
+        if (this.turningRadius) this.turningRadius.setVisible(false);
+
+        this.simulation.setMode('pathway');
+        this.readPathwayFromForm();
+        this.runPathwayVerification();
       }
 
-      // 2. Collision detection alert & sound
+      this.resetSoundFlags();
+      this.simulation.reset();
+    }
+
+    readPathwayFromForm() {
+      const lenEl = document.getElementById('input-pathway-length');
+      const widEl = document.getElementById('input-pathway-width');
+      const manEl = document.getElementById('pathway-maneuver-select');
+      const payloadRadio = document.querySelector('input[name="payload-condition"]:checked');
+
+      this.pathwayParams = {
+        length: lenEl ? Number(lenEl.value) : 8.0,
+        width: widEl ? Number(widEl.value) : 2200,
+        maneuver: manEl ? manEl.value : 'straight',
+        isLoaded: payloadRadio ? payloadRadio.value === 'loaded' : true
+      };
+    }
+
+    runPathwayVerification() {
+      if (!PathwayVerifier) return;
+
+      this.readPathwayFromForm();
+      this.resetSoundFlags();
+
+      this.pathwayEvalResult = PathwayVerifier.evaluate({
+        pathwayLength: this.pathwayParams.length,
+        pathwayWidth: this.pathwayParams.width,
+        maneuverType: this.pathwayParams.maneuver,
+        isLoaded: this.pathwayParams.isLoaded,
+        palletData: this.currentPallet,
+        modelCode: this.currentModelCode
+      });
+
+      // Rebuild 3D Pathway Corridor Model
+      if (this.pathwayModel) {
+        this.pathwayModel.rebuild(
+          this.pathwayParams.length,
+          this.pathwayParams.width,
+          this.pathwayParams.maneuver,
+          this.pathwayEvalResult.isFeasible
+        );
+      }
+
+      // Update simulation controller
+      this.simulation.setEvaluation(this.evalResult, this.pathwayEvalResult);
+
+      // Update Active Payload info
+      const pNameEl = document.getElementById('pathway-pallet-name');
+      const pSpecEl = document.getElementById('pathway-pallet-spec');
+      if (pNameEl && pSpecEl) {
+        if (this.pathwayParams.isLoaded) {
+          pNameEl.textContent = `Active Payload: ${this.currentPallet.name}`;
+          pSpecEl.textContent = `${this.currentPallet.dimensions.length} x ${this.currentPallet.dimensions.width} x ${this.currentPallet.dimensions.height} mm | Tare: ${this.currentPallet.tareWeight || 25} kg`;
+        } else {
+          pNameEl.textContent = 'Payload: Bare Chassis (Unloaded)';
+          pSpecEl.textContent = 'Footprint: 1585 x 910 x 1870 mm | Tare: 1,880 kg';
+        }
+      }
+
+      // Update Verdict Banner
+      const verdictBanner = document.getElementById('hud-pathway-verdict');
+      const verdictTitle = document.getElementById('hud-pathway-verdict-title');
+      const verdictDesc = document.getElementById('hud-pathway-verdict-desc');
+      if (verdictBanner && verdictTitle && verdictDesc) {
+        verdictBanner.className = `verdict-banner badge-${this.pathwayEvalResult.verdict.badgeClass}`;
+        verdictTitle.textContent = this.pathwayEvalResult.verdict.badge;
+        verdictDesc.textContent = this.pathwayEvalResult.verdict.explanation;
+      }
+
+      // Metric 1: Corridor Width Check
+      const widthEl = document.getElementById('metric-pathway-width');
+      if (widthEl) {
+        const cw = this.pathwayEvalResult.metrics.corridorWidth;
+        widthEl.className = `metric-row ${cw.pass ? 'pass' : 'fail'}`;
+        widthEl.innerHTML = `
+          <div class="metric-label">
+            <span class="status-tag ${cw.pass ? 'pass' : 'fail'}">${cw.pass ? 'PASS' : 'FAIL'}</span>
+            <strong>Corridor Width (${cw.actual}mm vs ${cw.requiredMin}mm Min)</strong>
+          </div>
+          <div class="metric-values">
+            <span>Corridor: <strong>${cw.actual}mm</strong></span>
+            <span>Min Passable: <strong>${cw.requiredMin}mm</strong></span>
+            <span class="margin-badge">${cw.margin >= 0 ? '+' + cw.margin + 'mm margin' : cw.margin + 'mm (COLLISION!)'}</span>
+          </div>
+        `;
+      }
+
+      // Metric 2: Turnability Check
+      const turnEl = document.getElementById('metric-pathway-turn');
+      if (turnEl) {
+        const tb = this.pathwayEvalResult.metrics.turnability;
+        turnEl.className = `metric-row ${tb.pass ? 'pass' : 'fail'}`;
+        turnEl.innerHTML = `
+          <div class="metric-label">
+            <span class="status-tag ${tb.pass ? 'pass' : 'fail'}">${tb.pass ? 'PASS' : 'FAIL'}</span>
+            <strong>${tb.label}</strong>
+          </div>
+          <div class="metric-desc" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+            ${tb.details}
+          </div>
+        `;
+      }
+
+      // Metric 3: Safe Velocity Advisory
+      const speedEl = document.getElementById('metric-pathway-speed');
+      if (speedEl) {
+        const sp = this.pathwayEvalResult.metrics.speedAdvisory;
+        const speedClass = sp.maxSpeed >= 1.5 ? 'pass' : (sp.maxSpeed > 0 ? 'warn' : 'fail');
+        speedEl.className = `metric-row ${speedClass}`;
+        speedEl.innerHTML = `
+          <div class="metric-label">
+            <span class="status-tag ${speedClass}">${sp.rating.toUpperCase()}</span>
+            <strong>Safe Velocity Limit (${sp.maxSpeed.toFixed(1)} m/s)</strong>
+          </div>
+          <div class="metric-desc" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+            ${sp.advisory}
+          </div>
+        `;
+      }
+
+      // Metric 4: ISO 3691-4 Safety Buffer Check
+      const isoEl = document.getElementById('metric-pathway-iso');
+      if (isoEl) {
+        const iso = this.pathwayEvalResult.metrics.isoCompliance;
+        isoEl.className = `metric-row ${iso.pass ? 'pass' : 'fail'}`;
+        isoEl.innerHTML = `
+          <div class="metric-label">
+            <span class="status-tag ${iso.pass ? 'pass' : 'warn'}">${iso.pass ? 'PASS' : 'CAUTION'}</span>
+            <strong>DIN EN ISO 3691-4 Compliance</strong>
+          </div>
+          <div class="metric-desc" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+            ${iso.notes} (Buffer: +${iso.bufferTotal}mm total)
+          </div>
+        `;
+      }
+
+      // Telemetry Bar updates
+      const marginEl = document.getElementById('telemetry-margin');
+      if (marginEl) {
+        const m = this.pathwayEvalResult.metrics.corridorWidth.margin;
+        marginEl.textContent = m >= 0 ? `+${Math.round(m / 2)} mm/side` : 'COLLISION!';
+        marginEl.style.color = m >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+      }
+
+      const radiusEl = document.getElementById('telemetry-radius');
+      if (radiusEl) {
+        const tr = this.pathwayEvalResult.metrics.turnability.turningRadius;
+        radiusEl.textContent = `${(tr / 1000).toFixed(2)} m (Pivot R)`;
+      }
+    }
+
+    onSimulationUpdate(simState) {
+      document.getElementById('timeline-scrubber').value = simState.currentTime.toFixed(2);
+      const maxDurText = this.activeMode === 'pathway' ? '5.00s' : '3.00s';
+      document.getElementById('sim-time-text').textContent = `${simState.currentTime.toFixed(2)}s / ${maxDurText}`;
+
+      const playBtn = document.getElementById('btn-play');
+      playBtn.textContent = simState.isPlaying ? 'Pause' : 'Play Simulation';
+
+      if (this.activeMode === 'pathway') {
+        // Pathway Simulation Telemetry & Audio
+        if (simState.isPlaying && !simState.isCollisionHalted) {
+          const maxSpeed = this.pathwayEvalResult?.metrics?.speedAdvisory?.maxSpeed ?? 1.6;
+          const progress = Math.min(1, simState.currentTime / 4.8);
+          const normalizedSpeed = Math.sin(progress * Math.PI);
+          this.sound.setMotorSpeed(normalizedSpeed);
+
+          const currentSpeedMps = (maxSpeed * normalizedSpeed).toFixed(2);
+          document.getElementById('telemetry-speed').textContent = `${currentSpeedMps} m/s`;
+
+          const liftMm = this.pathwayParams.isLoaded ? '80 mm' : '0 mm';
+          document.getElementById('telemetry-lift').textContent = liftMm;
+
+          if (simState.currentTime >= 4.90 && !this.hasPlayedEndSound) {
+            this.hasPlayedEndSound = true;
+            this.sound.playSuccessChime();
+          }
+        } else {
+          this.sound.stopMotor();
+          document.getElementById('telemetry-speed').textContent = '0.00 m/s';
+        }
+      } else {
+        // Pallet Simulation Telemetry & Audio
+        if (simState.isPlaying && !simState.isCollisionHalted) {
+          const isInserting = simState.currentTime < 2.2;
+          const normalizedSpeed = isInserting ? Math.sin((simState.currentTime / 2.2) * Math.PI) : 0;
+          this.sound.setMotorSpeed(normalizedSpeed);
+
+          const currentSpeedMps = isInserting ? (0.45 * Math.sin((simState.currentTime / 2.2) * Math.PI)).toFixed(2) : '0.00';
+          document.getElementById('telemetry-speed').textContent = `${currentSpeedMps} m/s`;
+
+          // Hydraulic lift hiss sound at lift phase
+          if (simState.currentTime >= 2.2 && !this.hasPlayedLiftSound) {
+            this.hasPlayedLiftSound = true;
+            this.sound.playHydraulicLift();
+          }
+
+          // Lift telemetry
+          const liftMeters = this.palletModel.group.position.y || 0;
+          document.getElementById('telemetry-lift').textContent = `${(liftMeters * 1000).toFixed(0)} mm`;
+
+          // Success chime at completion
+          if (simState.currentTime >= 2.95 && !this.hasPlayedEndSound) {
+            this.hasPlayedEndSound = true;
+            this.sound.playSuccessChime();
+          }
+        } else {
+          this.sound.stopMotor();
+          document.getElementById('telemetry-speed').textContent = '0.00 m/s';
+        }
+      }
+
+      // Collision detection alert & sound
       const alertBanner = document.getElementById('collision-alert-banner');
       if (simState.isCollisionHalted) {
         alertBanner.classList.add('visible');
-        alertBanner.innerHTML = `⚠️ <strong>CRITICAL IMPACT DETECTED:</strong> Motion halted at collision boundary.`;
+        alertBanner.innerHTML = `<strong>CRITICAL IMPACT DETECTED:</strong> Motion halted at collision boundary.`;
 
         if (!this.hasPlayedCollisionSound) {
           this.hasPlayedCollisionSound = true;

@@ -8,7 +8,7 @@ window.PALLET_PRESETS = [
   {
     id: 'my_chep_wood',
     country: 'Malaysia',
-    flag: '🇲🇾',
+    flag: '[MY]',
     name: 'Malaysia MS 1200 / CHEP Pool Pallet',
     standard: 'MS 1200 / MS ISO 6780',
     description: 'Standard 4-way full perimeter wooden block pallet used by CHEP, Loscam, and FMCG retail across Malaysia.',
@@ -24,7 +24,7 @@ window.PALLET_PRESETS = [
   {
     id: 'my_penang_plastic',
     country: 'Malaysia',
-    flag: '🇲🇾',
+    flag: '[MY]',
     name: 'Penang Electronics / Cleanroom Pallet',
     standard: 'JIS / Asian Standard',
     description: 'Square heavy-duty perimeter plastic block pallet widely deployed in Penang and Johor semiconductor manufacturing.',
@@ -41,7 +41,7 @@ window.PALLET_PRESETS = [
   {
     id: 'sg_asrs_wood',
     country: 'Singapore',
-    flag: '🇸🇬',
+    flag: '[SG]',
     name: 'Singapore SS 334 / Loscam Pool Pallet',
     standard: 'SS 334 / ISO 6780',
     description: 'Heavy-duty 4-way wooden perimeter pallet used in Singapore cold chain, FMCG, and high-bay ASRS.',
@@ -57,7 +57,7 @@ window.PALLET_PRESETS = [
   {
     id: 'sg_jurong_chem',
     country: 'Singapore',
-    flag: '🇸🇬',
+    flag: '[SG]',
     name: 'Jurong Island Petrochemical Pallet',
     standard: 'ISO 6780 / Chemical Standard',
     description: 'Heavy-duty 3-runner anti-static black HDPE plastic pallet for resin bags and chemical drumming.',
@@ -74,7 +74,7 @@ window.PALLET_PRESETS = [
   {
     id: 'ph_fmcg_wood',
     country: 'Philippines',
-    flag: '🇵🇭',
+    flag: '[PH]',
     name: 'Philippines FMCG Standard (Loscam)',
     standard: 'PNS ISO 6780',
     description: 'Dominant 4-way wooden block pallet deployed across Philippine retail distribution (San Miguel, SM Markets).',
@@ -90,7 +90,7 @@ window.PALLET_PRESETS = [
   {
     id: 'ph_gma_legacy',
     country: 'Philippines',
-    flag: '🇵🇭',
+    flag: '[PH]',
     name: 'Philippines US-Legacy Stringer Pallet',
     standard: 'ANSI MH1 / GMA Legacy',
     description: 'Notched timber stringer pallet common in legacy US manufacturing plants in Laguna and Subic.',
@@ -108,7 +108,7 @@ window.PALLET_PRESETS = [
   {
     id: 'cn_gb_tian_1210',
     country: 'China',
-    flag: '🇨🇳',
+    flag: '[CN]',
     name: 'China GB/T 2934 Standard 1 (Tian 田-Type)',
     standard: 'GB/T 2934-2007 (Priority 1)',
     description: 'National standard closed-bottom (Tian 田) perimeter plastic pallet for e-commerce (Cainiao, JD Logistics).',
@@ -123,7 +123,7 @@ window.PALLET_PRESETS = [
   {
     id: 'cn_gb_chuan_1210',
     country: 'China',
-    flag: '🇨🇳',
+    flag: '[CN]',
     name: 'China GB/T 2934 Standard 1 (Chuan 川-Type)',
     standard: 'GB/T 2934-2007 (Priority 1)',
     description: 'National standard open-bottom (Chuan 川) 3-runner pallet. Ideal for pallet truck AMR ground transport.',
@@ -138,7 +138,7 @@ window.PALLET_PRESETS = [
   {
     id: 'cn_gb_tian_1111',
     country: 'China',
-    flag: '🇨🇳',
+    flag: '[CN]',
     name: 'China GB/T 2934 Standard 2 (Tian 田-Type Block)',
     standard: 'GB/T 2934-2007 (Pudu Slide Benchmark)',
     description: '1.1m square block plastic pallet. Center block W2 = 195mm (Mandatory 620mm Model only!).',
@@ -153,7 +153,7 @@ window.PALLET_PRESETS = [
   {
     id: 'cn_gb_chuan_1111',
     country: 'China',
-    flag: '🇨🇳',
+    flag: '[CN]',
     name: 'China GB/T 2934 Standard 2 (Chuan 川-Type Stringer)',
     standard: 'GB/T 2934-2007 (Pudu Slide Benchmark)',
     description: '1.1m square 3-runner plastic stringer pallet. Center stringer W2 = 160mm (Fits both 550 and 620).',
@@ -170,7 +170,7 @@ window.PALLET_PRESETS = [
   {
     id: 'eu_epal1_800',
     country: 'Europe',
-    flag: '🇪🇺',
+    flag: '[EU]',
     name: 'Euro Pallet EPAL 1 (800mm Face Entry)',
     standard: 'EN 13698-1 / UIC 435-2 (Pudu Slide Benchmark)',
     description: 'European standard 3-runner timber pallet. Outer opening W1 = 600mm. Mandates WPID01-N (550mm) model!',
@@ -186,7 +186,7 @@ window.PALLET_PRESETS = [
   {
     id: 'eu_epal2_1210',
     country: 'Europe',
-    flag: '🇪🇺',
+    flag: '[EU]',
     name: 'Euro Pallet EPAL 2 (Full Perimeter)',
     standard: 'EN 13698-2',
     description: 'Heavy industrial European pallet with complete bottom perimeter framework.',
@@ -204,7 +204,7 @@ window.PALLET_PRESETS = [
   {
     id: 'us_gma_40end',
     country: 'United States / Canada',
-    flag: '🇺🇸',
+    flag: '[US]',
     name: 'North American GMA Standard (40" End Entry)',
     standard: 'ANSI MH1 / GMA 48x40',
     description: '3-stringer timber pallet entering from 40" stringer ends. Full 89mm under-deck clearance.',
@@ -220,7 +220,7 @@ window.PALLET_PRESETS = [
   {
     id: 'us_gma_48side',
     country: 'United States / Canada',
-    flag: '🇺🇸',
+    flag: '[US]',
     name: 'North American GMA (48" Notched Side Entry)',
     standard: 'ANSI MH1 / GMA 48x40 (Side Notches)',
     description: 'Side entry through cut-out notches. Notch height is only 32mm - collision failure with 80mm lowered forks!',
@@ -238,7 +238,7 @@ window.PALLET_PRESETS = [
   {
     id: 'special_reversible',
     country: 'Heavy Industry',
-    flag: '⚙️',
+    flag: '[REV]',
     name: 'Reversible Double-Deck Pallet (Double-Sided)',
     standard: 'ISO 6780 / Industrial Reversible',
     description: 'Identical top and bottom decks with zero wheel openings. Strictly incompatible with ground-wheel AMRs.',
@@ -253,7 +253,7 @@ window.PALLET_PRESETS = [
   {
     id: 'special_sagged',
     country: 'Damaged / Overloaded',
-    flag: '⚠️',
+    flag: '[DEF]',
     name: 'Over-Sagged Deflected Pallet (>35mm Sag)',
     standard: 'Failed ISO 8611 Deflection Limit',
     description: 'Heavily overloaded/damp timber pallet. Under-deck opening sagged down to 60mm (blocks 80mm forks).',

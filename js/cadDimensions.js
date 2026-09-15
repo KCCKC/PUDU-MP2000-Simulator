@@ -143,7 +143,7 @@ window.CadDimensions = class CadDimensions {
     );
     this.group.add(w1Line);
 
-    const w1Label = this.createTextSprite(`W₁: ${(W1 * 1000).toFixed(0)}mm ${passOuter ? '✓' : '⚠'}`, w1Color);
+    const w1Label = this.createTextSprite(`W₁: ${(W1 * 1000).toFixed(0)}mm ${passOuter ? '[OK]' : '[WARN]'}`, w1Color);
     w1Label.position.set(palletFrontX, w1Y + 0.05, 0);
     this.group.add(w1Label);
 
@@ -157,7 +157,7 @@ window.CadDimensions = class CadDimensions {
     );
     this.group.add(w2Line);
 
-    const w2Label = this.createTextSprite(`W₂: ${(W2 * 1000).toFixed(0)}mm ${passInner ? '✓' : '⚠'}`, w2Color);
+    const w2Label = this.createTextSprite(`W₂: ${(W2 * 1000).toFixed(0)}mm ${passInner ? '[OK]' : '[WARN]'}`, w2Color);
     w2Label.position.set(palletFrontX, w2Y + 0.05, 0);
     this.group.add(w2Label);
 

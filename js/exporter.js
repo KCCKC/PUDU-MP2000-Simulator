@@ -38,11 +38,12 @@ window.VerificationExporter = class VerificationExporter {
     // Brand Title
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 24px -apple-system, sans-serif';
-    ctx.fillText('🤖 PUDU MP2000 PALLET VERIFIER', 32, 42);
+    ctx.fillText('PUDU MP2000 PALLET VERIFIER', 32, 42);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '14px -apple-system, sans-serif';
-    const palletTitle = `${palletData.flag || '📦'} ${palletData.name} (${palletData.dimensions.length}x${palletData.dimensions.width}x${palletData.dimensions.height}mm)`;
+    const flagPrefix = palletData.flag ? `${palletData.flag} ` : '';
+    const palletTitle = `${flagPrefix}${palletData.name} (${palletData.dimensions.length}x${palletData.dimensions.width}x${palletData.dimensions.height}mm)`;
     ctx.fillText(palletTitle, 32, 68);
 
     // Overlay Bottom Result Card
@@ -76,7 +77,7 @@ window.VerificationExporter = class VerificationExporter {
     if (tr) {
       ctx.fillStyle = '#38bdf8';
       ctx.font = 'bold 12px monospace';
-      ctx.fillText(`📐 MANEUVERING: Min Turning R: ${tr.rMin.toFixed(2)}m (Ast ≤ ${tr.astMin}mm) | Recommended: ${tr.rRec.toFixed(2)}m (Safe Aisle ≥ ${tr.astRec}mm, ISO 3691-4)`, cardX + 24, cardY + 88);
+      ctx.fillText(`MANEUVERING: Min Turning R: ${tr.rMin.toFixed(2)}m (Ast ≤ ${tr.astMin}mm) | Recommended: ${tr.rRec.toFixed(2)}m (Safe Aisle ≥ ${tr.astRec}mm, ISO 3691-4)`, cardX + 24, cardY + 88);
     }
 
     // Watermark Date

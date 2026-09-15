@@ -87,7 +87,7 @@ window.RobotModel = class RobotModel {
         this.proceduralGroup.visible = false;
         this.isGlbActive = true;
 
-        console.log('✅ Prioritized MP2000-optimized.glb loaded and separated into Chassis & Elevating Forks!');
+        console.log('[OK] Prioritized MP2000-optimized.glb loaded and separated into Chassis & Elevating Forks!');
         if (onComplete) onComplete(true, null);
       },
       (xhr) => {
